@@ -46,7 +46,8 @@ def save_corners(corners,image,outnm='',title=None):
     
 
 
-
+from functools import partial
+from multiprocessing.pool import Pool
 
 
 def crns(fls):
@@ -75,7 +76,9 @@ def main():
     args = parser.parse_args()
     path = os.path.join(args.path, '*.jpg' )
     fls = glob.glob(path)
-    corners = crns(fls)
+    corners = partial(crns, fls)
+    with Pool(8) as p:
+        p.map(crns, fls)
     outpath = os.path.join(args.path, 'edges.csv')
     import csv
     w = csv.writer(open(outpath, 'w'))
