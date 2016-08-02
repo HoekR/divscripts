@@ -8,8 +8,12 @@ from https://github.com/jflesch/pyocr
 """
 import os
 import sys
+import glob
 from PIL import Image
-
+import logging
+import multiprocessing
+from multiprocessing.pool import Pool
+from argparse import ArgumentParser
 
 import pyocr
 import pyocr.builders
@@ -87,8 +91,10 @@ def write_boxes_to_string(line_box, verbose=True):
     return out
 
 
-def im2fl(flin, flout, verbose=True):
+def im2fl(fls=(), verbose=True):
     """image to linebox file"""
+    flin = fls[0]
+    flout = fls[1]
     parse2string(flin, flout)
 #    floutt = open(flout, 'wb')
 #    floutt.write(outstr)
@@ -97,21 +103,51 @@ def im2fl(flin, flout, verbose=True):
 
 def in2out(indir, flin, outdir):
     flout = os.path.splitext(flin)[0] + '.txt'
-    out=(os.path.join(indir, flin), os.path.join(outdir, flout))
+    out=(os.path.join(indir, flin), os.path.join(indir, outdir, flout))
     return out
- 
+
 def recurse(indir, outname="out", tl=im2fl):
     """perform on indir outdir is indir+/out"""
-    from multiprocessing.pool import Pool
+
+    logging.info('%s started' % indir)
     try:
         os.mkdir(os.path.join(indir, outname))
     except OSError:
         pass
     outdir = os.path.join(indir, outname)
-    fls = [x for x in os.listdir(indir) if x.find('jpg')!=-1]
-    fls2 = [in2out(indir, flin, outdir) for flin in fls] 
-    pool = Pool(8)
+    fls = glob.glob(os.path.join(indir, "*.jpg"))
+    fls2 = []
+    for flin in fls:
+        out = in2out(indir, flin, outdir)
+        if os.path.exists(out[1]) == False:
+            fls2.append(out)
+    poolsize = multiprocessing.cpu_count() * 4
+    pool = multiprocessing.pool.Pool(poolsize, maxtasksperchild=4)
     pool.map(tl, fls2)
-    
-        
+    pool.close()
+    pool.join()
+    logging.info('%s done' % indir)
 
+def main():
+    """main"""
+    parser = ArgumentParser(description="""
+    performs ocr on all images in directory""",
+                            prog="ocr2box.py")
+    parser.add_argument("-p", "--path", required=True, 
+                        help="""root to retrieve images.  
+                                If path does not exist it will be created """)
+
+    #try:
+
+    logging.basicConfig(filename='/home/rik/migrants/ocring.txt', 
+                        format='%(asctime)s %(message)s',
+                        level=logging.DEBUG)   
+    args = parser.parse_args()
+    rt = args.path
+    for root, d, files in os.walk(rt):
+        d = os.path.split(root)[0]
+        recurse(d)
+    return "ready"
+
+if __name__ == "__main__":
+    main()

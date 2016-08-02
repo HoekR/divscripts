@@ -46,8 +46,8 @@ def save_corners(corners,image,outnm='',title=None):
     
 
 
-from functools import partial
 from multiprocessing.pool import Pool
+import multiprocessing
 
 
 def crns(fl):
@@ -57,6 +57,7 @@ def crns(fl):
     return corners
 
 import os
+import logging
 from argparse import ArgumentParser
 
 def main():
@@ -71,24 +72,36 @@ def main():
                                 If path does not exist it will be created """)
 
     #try:
-    args = parser.parse_args()
-    path = os.path.join(args.path, '*.jpg' )
-#    import pdb; pdb.set_trace()
-    fls = glob.glob(path)
-    pool = Pool(8)
-    corners = pool.map(crns, fls)
-#    corners = crns(fls)
-    outpath = os.path.join(args.path, 'edges.csv')
-    import csv
-    w = csv.writer(open(outpath, 'w'))
-    w.writerow(['file', 'corners'])
-    for corner in corners:
-        out = [os.path.basename(corner[0]), corner[1]]
-        w.writerow(out)
-    
-#    except:
-#        parser.print_help()
 
+    logging.basicConfig(filename='/home/rik/migrants/edging.txt', 
+                        format='%(asctime)s %(message)s',
+                        level=logging.DEBUG)   
+    args = parser.parse_args()
+    rt = args.path
+    for root, d, files in os.walk(rt):
+        logging.info('%s started' % root)
+        d = os.path.split(root)[0]
+        if  d != 'out' and 'edges.csv' not in files:
+            pat = os.path.join(root, '*.jpg' )
+            fls = glob.glob(pat)
+            poolsize = multiprocessing.cpu_count() * 4
+            pool = Pool(poolsize, maxtasksperchild=4)
+            corners = pool.map(crns, fls)
+            pool.close()
+            pool.join()
+        #    corners = crns(fls)
+            outpath = os.path.join(root, 'edges.csv')
+            import csv
+            w = csv.writer(open(outpath, 'w'))
+            w.writerow(['file', 'corners'])
+            for corner in corners:
+                out = [os.path.basename(corner[0]), corner[1]]
+                w.writerow(out)
+        
+        logging.info('%s done' % root)
+    #    except:
+    #        parser.print_help()
+    
 
 if __name__ == "__main__":
     main()
