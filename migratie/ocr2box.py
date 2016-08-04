@@ -86,26 +86,32 @@ def write_boxes_to_string(line_box, verbose=True):
     out = out.encode('utf8')
     return out
 
+
 def im2fl(flin, flout, verbose=True):
     """image to linebox file"""
-    line_box = parseim(flin)
-    outstr = write_boxes_to_string(line_box)
-    floutt = open(flout, 'wb')
-    floutt.write(outstr)
-    floutt.close()
+    parse2string(flin, flout)
+#    floutt = open(flout, 'wb')
+#    floutt.write(outstr)
+#    floutt.close()
     print "{flin} written to {flout}".format(flin=flin, flout=flout)
 
+def in2out(indir, flin, outdir):
+    flout = os.path.splitext(flin)[0] + '.txt'
+    out=(os.path.join(indir, flin), os.path.join(outdir, flout))
+    return out
  
 def recurse(indir, outname="out", tl=im2fl):
     """perform on indir outdir is indir+/out"""
+    from multiprocessing.pool import Pool
     try:
         os.mkdir(os.path.join(indir, outname))
     except OSError:
         pass
     outdir = os.path.join(indir, outname)
     fls = [x for x in os.listdir(indir) if x.find('jpg')!=-1]
-    for flin in fls:
-        flout = os.path.splitext(flin)[0] + '.txt'
-        tl(os.path.join(indir, flin), os.path.join(outdir, flout))
+    fls2 = [in2out(indir, flin, outdir) for flin in fls] 
+    pool = Pool(8)
+    pool.map(tl, fls2)
+    
         
 

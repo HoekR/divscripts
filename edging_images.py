@@ -50,12 +50,10 @@ from functools import partial
 from multiprocessing.pool import Pool
 
 
-def crns(fls):
-    corners = {}
-    for i in fls:
-        image = ndi.imread(i)
-        grimage = rgb2gray(image)
-        corners[i] = len(corner_peaks(corner_harris(grimage),min_distance=2))
+def crns(fl):
+    image = ndi.imread(fl)
+    grimage = rgb2gray(image)
+    corners = [fl, len(corner_peaks(corner_harris(grimage),min_distance=2))]
     return corners
 
 import os
@@ -75,15 +73,16 @@ def main():
     #try:
     args = parser.parse_args()
     path = os.path.join(args.path, '*.jpg' )
+#    import pdb; pdb.set_trace()
     fls = glob.glob(path)
-    corners = partial(crns, fls)
-    with Pool(8) as p:
-        p.map(crns, fls)
+    pool = Pool(8)
+    corners = pool.map(crns, fls)
+#    corners = crns(fls)
     outpath = os.path.join(args.path, 'edges.csv')
     import csv
     w = csv.writer(open(outpath, 'w'))
     w.writerow(['file', 'corners'])
-    for corner in corners.items():
+    for corner in corners:
         out = [os.path.basename(corner[0]), corner[1]]
         w.writerow(out)
     
