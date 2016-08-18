@@ -91,15 +91,17 @@ def write_boxes_to_string(line_box, verbose=True):
     return out
 
 
-def im2fl(fls=(), verbose=True):
+def im2fl(fls=(), verbose=False):
     """image to linebox file"""
+    
     flin = fls[0]
     flout = fls[1]
     parse2string(flin, flout)
 #    floutt = open(flout, 'wb')
 #    floutt.write(outstr)
 #    floutt.close()
-    print "{flin} written to {flout}".format(flin=flin, flout=flout)
+    if verbose == True:
+        print "{flin} written to {flout}".format(flin=flin, flout=flout)
 
 def in2out(indir, flin, outdir):
     flout = os.path.splitext(flin)[0] + '.txt'
@@ -113,13 +115,13 @@ def recurse(indir, outname="out", tl=im2fl):
     try:
         os.mkdir(os.path.join(indir, outname))
     except OSError:
-        pass
+        logging.info('%s already existing' % indir)
     outdir = os.path.join(indir, outname)
     fls = glob.glob(os.path.join(indir, "*.jpg"))
     fls2 = []
     for flin in fls:
         out = in2out(indir, flin, outdir)
-        if os.path.exists(out[1]) == False:
+        if not os.path.exists(out[1]):
             fls2.append(out)
     poolsize = multiprocessing.cpu_count() * 4
     pool = multiprocessing.pool.Pool(poolsize, maxtasksperchild=4)
@@ -138,15 +140,14 @@ def main():
                                 If path does not exist it will be created """)
 
     #try:
-
+    import pdb;pdb.set_trace()
     logging.basicConfig(filename='/home/rik/migrants/ocring.txt', 
                         format='%(asctime)s %(message)s',
                         level=logging.DEBUG)   
     args = parser.parse_args()
     rt = args.path
     for root, d, files in os.walk(rt):
-        d = os.path.split(root)[0]
-        recurse(d)
+        recurse(root)
     return "ready"
 
 if __name__ == "__main__":
