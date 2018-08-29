@@ -89,7 +89,7 @@ def make_item(row, name, volgnr=3):
         try:
             dates = make_dates(row)
         except:
-            print row
+            print( row)
         pubdate = etree.Element(wp+'pubDate')
         pubdate.text = str(datetime.datetime.now())
         pubdate = template.append(pubdate)
@@ -118,7 +118,7 @@ def make_item(row, name, volgnr=3):
         for val in [dsc, dte, edte, category]:
             template.append(val)
         if 'Wagram' in row[name]:
-            print etree.tostring(list(channel)[-1])
+            print (etree.tostring(list(channel)[-1]))
 #            txt += '\t' + ' '.join(val.itertext())
 #        log.write(txt+'\n')
             
